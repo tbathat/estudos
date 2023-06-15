@@ -429,3 +429,278 @@ Podemos usar múltiplas condições combinando "if" e "else" em uma expressão "
     println!("number is not divisible by 4, 3, or 2");
     }
     }
+
+# Propriedade (ownership)
+
+Algumas linguagens possuem coleta de lixo que regularmente busca por memória não mais utilizada enquanto o programa é executado; em outras linguagens, o programador deve explicitamente alocar e liberar a memória.
+
+**Rust utiliza uma terceira abordagem: a memória é gerenciada através de um sistema de propriedade com um conjunto de regras que o compilador verifica.**
+
+Se alguma das regras for violada, o programa não será compilado. Nenhuma das características da propriedade vai retardar o seu programa enquanto ele está sendo executado.
+
+Por ser um conceito novo para muitos programadores, leva algum tempo para se acostumar com a propriedade. A boa notícia é que quanto mais experiência você adquirir com Rust e as regras do sistema de propriedade, mais fácil será para você desenvolver naturalmente um código seguro e eficiente.
+
+## O Stack e o Heap
+
+**O "stack" (pilha) e o "heap" (monte) são duas áreas de memória usadas em programas de computador.**
+
+O **stack (pilha)** é uma região de memória organizada em uma estrutura de dados chamada de pilha. Ele é usado para armazenar informações sobre as chamadas de função, como endereços de retorno, parâmetros e variáveis locais.
+
+A pilha é uma estrutura de dados de tamanho fixo e as operações de inserção e remoção são feitas de forma rápida, seguindo uma abordagem conhecida como LIFO (Last-In, First-Out, último a entrar, primeiro a sair). -> Pense na analogia de uma pilha de pratos, o primeiro a ser colocado na pilha será o último a ser retirado.
+
+**All data stored on the stack must have a known, fixed size.**
+
+O **heap (monte)**, por outro lado, é uma região de memória usada para alocação dinâmica. É onde os objetos ou dados são alocados quando o tamanho ou a vida útil não podem ser determinados antecipadamente. Diferentemente da pilha, o heap não segue uma organização estruturada fixa.
+
+A alocação e liberação de memória no heap são mais flexíveis, mas também podem ser mais lentas do que as operações na pilha.
+
+**AMBOS SÃO PARTES DA MEMÓRIA DISPONÍVEIS PARA O SEU CÓDIGO UTILIZAR EM TEMPO DE EXECUÇÃO (RUN TIME), PORÉM ESTÃO ESTRUTURADOS DE MANEIRAS DIFERENTES.**
+
+O **heap** é menos organizado: quando você coloca dados no heap, você solicita uma determinada quantidade de espaço. O alocador de memória encontra um local vazio no heap que seja grande o suficiente, marca-o como em uso e retorna um ponteiro, que é o endereço desse local. Esse processo é chamado de alocação no heap e às vezes é abreviado apenas como alocação (colocar valores na pilha não é considerado alocação).
+
+Como o ponteiro para o heap tem um tamanho conhecido e fixo, você pode armazenar o ponteiro na pilha, mas quando você deseja os dados reais, você deve seguir o ponteiro.
+
+Pense em estar sentado em um restaurante. Quando você entra, você informa o número de pessoas do seu grupo, e o anfitrião encontra uma mesa vazia que acomode todos e o leva até lá. Se alguém do seu grupo chegar tarde, eles podem perguntar onde vocês estão sentados para encontrá-los.
+
+**Acessar dados no heap é mais lento do que acessar dados na pilha, porque é necessário seguir um ponteiro para chegar lá.**
+
+_Os processadores contemporâneos são mais rápidos se pularem menos pela memória._
+
+Continuando com a analogia, imagine um servidor em um restaurante recebendo pedidos de várias mesas. É mais eficiente pegar todos os pedidos de uma mesa antes de passar para a próxima mesa. Pegar um pedido da mesa A, depois um pedido da mesa B, e então um pedido da mesa A novamente, seguido de um pedido da mesa B novamente seria um processo muito mais lento.
+
+Da mesma forma, um processador pode executar seu trabalho melhor se trabalhar em dados que estão próximos a outros dados (como na stack), em vez de estarem mais distantes (como pode ocorrer no heap).
+
+**Manter o controle de quais partes do código estão usando quais dados na memória heap, minimizando a quantidade de dados duplicados na heap e limpando os dados não utilizados na heap para evitar falta de espaço são todos problemas que a propriedade aborda.** Uma vez que você compreenda a propriedade, você não precisará pensar frequentemente sobre a pilha e a heap, mas saber que o principal objetivo da propriedade é gerenciar dados na heap pode ajudar a explicar por que ela funciona da maneira que funciona.
+
+- **Ownership rules (regras da propriedade)**
+
+1.  Cada valor em Rust possui um proprietário.
+2.  Só pode haver um único proprietário por vez.
+3.  Quando o proprietário sai do escopo, o valor será descartado.
+
+## Escopo de variável
+
+Como primeiro exemplo de propriedade, vamos analisar o escopo de algumas variáveis. Um escopo é o intervalo dentro de um programa no qual um item é válido.
+
+```rust
+ {                      // s is not valid here, it’s not yet declared
+        let s = "hello";   // s is valid from this point forward
+
+        // do stuff with s
+    }                      // this scope is now over, and s is no longer valid
+```
+
+## Data type String
+
+Os tipos abordados até então têm um tamanho conhecido, podem ser armazenados na pilha (stack) e removidos da pilha quando seu escopo termina, podendo também ser rapidamente e facilmente copiados para criar uma nova instância independente, caso outra parte do código precise usar o mesmo valor em um escopo diferente.
+
+As string literais (tipo primitivo) são convenientes, mas não são adequadas para todas as situações em que podemos querer usar texto porque elas são imutáveis. Outra razão é que nem todo valor de string pode ser conhecido quando escrevemos nosso código: por exemplo, e se quisermos receber entrada do usuário e armazená-la?
+
+Para essas situações, o Rust possui um segundo tipo de string, String. Esse tipo gerencia dados alocados no heap e, como tal, é capaz de armazenar uma quantidade de texto desconhecida para nós durante o tempo de compilação. Você pode criar uma String a partir de uma literal de string usando a função from, assim:
+
+```rust
+    let mut s = String::from("hello");
+
+    s.push_str(", world!"); // push_str() appends a literal to a String
+
+    println!("{}", s); // This will print `hello, world!`
+```
+
+**Por que String é mutável e o tipo primitivo string literal não pode?** _Porque a diferença está em como esses dois tipos de dados lidam com memória._
+
+## Memória e Alocação
+
+Por conta da imutabilidade da string literal, nós podemos saber o seu conteúdo no tempo de compilação, uma vez que o texto dela está codificado diretamente na execução final.
+
+Com o tipo String, a fim de suportar um texto mutável e expansível, precisamos alocar uma quantidade de memória no heap (monte), desconhecida em tempo de compilação, para armazenar o conteúdo.
+
+- A memória deve ser solicitada ao alocador de memória em tempo de execução.
+- Precisamos de um meio de devolver essa memória ao alocador quando terminarmos de usar nossa String.
+
+**A primeira parte é feita por nós:** quando chamamos String::from, sua implementação solicita a memória necessária. Isso é praticamente universal em linguagens de programação.
+
+No entanto, **a segunda parte é diferente**.
+
+Em linguagens com um coletor de lixo (GC), o GC controla e limpa a memória que não está mais sendo usada, e não precisamos pensar nisso. Na maioria das linguagens sem um GC, é nossa responsabilidade identificar quando a memória não está mais sendo usada e chamar código para liberá-la explicitamente, assim como fizemos para solicitá-la. Fazer isso é difícil.
+
+Se esquecermos, iremos desperdiçar memória. Se fizermos isso muito cedo, teremos uma variável inválida. Se fizermos duas vezes, isso também é um bug. **_Precisamos combinar exatamente uma alocação com exatamente uma liberação._**
+
+**Em Rust, a memória é devolvida automaticamente assim que a variável que a possui sai de escopo.** Aqui está uma versão do nosso exemplo de escopo do Exemplo 4-1 usando uma String em vez de uma string literal:
+
+```rust
+{
+        let s = String::from("hello"); // s is valid from this point forward
+
+        // do stuff with s
+    }                                  // this scope is now over, and s is no
+                                       // longer valid
+```
+
+**This pattern has a profound impact on the way Rust code is written. It may seem simple right now, but the behavior of code can be unexpected in more complicated situations when we want to have multiple variables use the data we’ve allocated on the heap. Let’s explore some of those situations now.**
+
+- **Variáveis e Interação de Dados com o Movimento**
+  Multiple variables can interact with the same data in different ways in Rust. Exemplo:
+
+```rust
+ let x = 5;
+ let y = x;
+```
+
+Podemos deduzir que está acontecendo: "atribuir o valor 5 a x; em seguida, fazer uma cópia do valor em x e atribuí-lo a y." Agora temos duas variáveis, x e y, e ambas são iguais a 5. _Isso é realmente o que está acontecendo, porque os inteiros são valores simples com um tamanho conhecido e fixo, e esses dois valores 5 são colocados na pilha_.
+
+Agora, nesse próximo caso, podemos assumir que ocorreria o mesmo:
+
+```rust
+let s1 = String::from("hello");
+    let s2 = s1;
+
+```
+
+Uma String é composta por três partes, conforme ilustra a coluna da esquerda: um ponteiro para a memória que armazena o conteúdo da string, um comprimento e uma capacidade. Esse grupo de dados é armazenado na pilha.
+À direita está a memória no heap que armazena o conteúdo.
+![Figure 4-1: Representation in memory of a `String` holding the value `"hello"` bound to `s1`](https://doc.rust-lang.org/book/img/trpl04-01.svg)
+
+**Lenght** (comprimento) é a quantidade de memória, em bytes, que o conteúdo da String está usando atualmente. A **capacidade** é a quantidade total de memória, em bytes, que a String recebeu do alocador. _A diferença entre o comprimento e a capacidade é importante, mas não neste contexto, então por enquanto, é seguro ignorar a capacidade._
+
+Quando atribuímos s1 a s2, os dados da String são copiados, o que significa que copiamos o ponteiro, o comprimento e a capacidade que estão na pilha. Não copiamos os dados no heap para onde o ponteiro se refere. Em outras palavras, a representação dos dados na memória é semelhante à:
+
+![Figure 4-2: Representation in memory of the variable `s2` that has a copy of the pointer, length, and capacity of `s1`](https://doc.rust-lang.org/book/img/trpl04-02.svg)
+
+![Figure 4-3: Another possibility for what `s2 = s1` might do if Rust copied the heap data as well](https://doc.rust-lang.org/book/img/trpl04-03.svg)
+
+Já foi dito que quando uma variável sai de escopo, o Rust chama automaticamente a função `drop` e limpa a memória alocada no heap para aquela variável.
+
+Mas a Figura 4-2 mostra ambos os ponteiros de dados apontando para o mesmo local. Isso é um problema: quando s2 e s1 saem de escopo, ambas tentarão liberar a mesma memória. Isso é conhecido como um erro de "double free" e é um dos bugs de segurança de memória que mencionamos anteriormente. Liberar a memória duas vezes pode levar à corrupção de memória, o que potencialmente pode resultar em vulnerabilidades de segurança.
+
+Para garantir a segurança da memória, após a linha `let s2 = s1;`, o Rust considera s1 como inválido.
+
+Se você já ouviu os termos "cópia rasa" (shallow copy) e "cópia profunda" (deep copy) ao trabalhar com outras linguagens, o conceito de copiar o ponteiro, o tamanho e a capacidade sem copiar os dados provavelmente parece ser uma cópia rasa.
+
+**Mas porque o Rust também invalida a primeira variável, em vez de ser chamado de uma cópia rasa, é conhecido como uma movimentação (move).** Neste exemplo, diríamos que s1 foi movido para s2. Então, o que realmente acontece é mostrado na Figura 4-4.
+
+![enter image description here](https://doc.rust-lang.org/book/img/trpl04-04.svg)
+
+Isso resolve nosso problema! Com apenas s2 válido, quando ele sair de escopo, ele sozinho liberará a memória e estaremos prontos.
+
+Além disso, há uma escolha de design implícita nisso: o Rust nunca criará automaticamente cópias "profundas" dos seus dados. Portanto, qualquer cópia automática pode ser considerada rasa em termos de desempenho em tempo de execução.
+
+- **Variables and Data Interacting with Clone**
+  Se quisermos copiar profundamente os dados do heap da String, não apenas os dados da pilha (stack), podemos usar um método comum chamado `clone`. Discutiremos a sintaxe dos métodos no Capítulo 5, mas como os métodos são uma característica comum em muitas linguagens de programação, você provavelmente já os viu antes.
+
+Aqui está um exemplo do método clone em ação:
+
+```rust
+   let s1 = String::from("hello");
+    let s2 = s1.clone();
+
+    println!("s1 = {}, s2 = {}", s1, s2);
+```
+
+Isso funciona muito bem e produz explicitamente o comportamento mostrado na Figura 4-3, onde os dados do heap são copiados.
+
+- **Stack-Only Data: Copy**
+
+Rust possui uma anotação especial chamada de trait Copy que podemos colocar em tipos armazenados na pilha, como os inteiros (falaremos mais sobre traits no Capítulo 10). Se um tipo implementa o trait Copy, as variáveis que o utilizam não são movidas, mas sim copiadas trivialmente, tornando-as válidas mesmo após serem atribuídas a outra variável.
+
+Rust não permite que anotemos um tipo com Copy se o tipo, ou qualquer uma de suas partes, implementou o trait Drop (saiu do escopo). Se o tipo precisa de algo especial para acontecer quando o valor sai de escopo e adicionamos a anotação Copy a esse tipo, receberemos um erro de compilação.
+
+**Então, quais tipos implementam o trait Copy?**
+Você pode verificar a documentação do tipo específico para ter certeza, mas como regra geral, **qualquer grupo de valores escalares simples pode implementar Copy, e nada que exija alocação ou seja uma forma de recurso pode implementar Copy.** Aqui estão alguns dos tipos que implementam Copy:
+
+- Todos os tipos de inteiros, como u32.
+- O tipo booleano, bool, com os valores true e false.
+- Todos os tipos de ponto flutuante, como f64.
+- O tipo de caractere, char.
+- Tuplas, se contiverem apenas tipos que também implementam Copy. _Por exemplo, (i32, i32) implementa Copy, mas (i32, String) não._
+
+* **Ownership and Functions**
+
+A mecânica de passar um valor para uma função é similar àquela de atribuir um valor a uma variável. Passar uma variável para uma função irá mover ou copiar, assim como a atribuição faz.
+
+```rust
+fn main() {
+    let s = String::from("hello");  // s comes into scope
+
+    takes_ownership(s);             // s's value moves into the function...
+                                    // ... and so is no longer valid here
+
+    let x = 5;                      // x comes into scope
+
+    makes_copy(x);                  // x would move into the function,
+                                    // but i32 is Copy, so it's okay to still
+                                    // use x afterward
+
+} // Here, x goes out of scope, then s. But because s's value was moved, nothing
+  // special happens.
+
+fn takes_ownership(some_string: String) { // some_string comes into scope
+    println!("{}", some_string);
+} // Here, some_string goes out of scope and `drop` is called. The backing
+  // memory is freed.
+
+fn makes_copy(some_integer: i32) { // some_integer comes into scope
+    println!("{}", some_integer);
+} // Here, some_integer goes out of scope. Nothing special happens.
+```
+
+Se tentássemos usar `s` após a chamada para `takes_ownership`, o Rust lançaria um erro de compilação. Essas verificações estáticas nos protegem de erros. Tente adicionar código ao `main` que usa `s` e `x` para ver onde você pode usá-los e onde as regras de propriedade impedem que você faça isso.
+
+- **Return Values and Scope**
+  Retornar valores também pode transferir a propriedade. O próximo exemplo mostra uma função que retorna algum valor, com anotações similares às do exemplo anterior.
+
+```rust
+fn main() {
+    let s1 = gives_ownership();         // gives_ownership moves its return
+                                        // value into s1
+
+    let s2 = String::from("hello");     // s2 comes into scope
+
+    let s3 = takes_and_gives_back(s2);  // s2 is moved into
+                                        // takes_and_gives_back, which also
+                                        // moves its return value into s3
+} // Here, s3 goes out of scope and is dropped. s2 was moved, so nothing
+  // happens. s1 goes out of scope and is dropped.
+
+fn gives_ownership() -> String {             // gives_ownership will move its
+                                             // return value into the function
+                                             // that calls it
+
+    let some_string = String::from("yours"); // some_string comes into scope
+
+    some_string                              // some_string is returned and
+                                             // moves out to the calling
+                                             // function
+}
+
+// This function takes a String and returns one
+fn takes_and_gives_back(a_string: String) -> String { // a_string comes into
+                                                      // scope
+
+    a_string  // a_string is returned and moves out to the calling function
+}
+```
+
+A propriedade de uma variável segue o mesmo padrão sempre: atribuir um valor a outra variável o faz se mover Quando uma variável que inclui dados no heap sai do escopo, o valor será limpo pelo "drop" a menos que a propriedade dos dados tenha sido movida para outra variável.
+
+Embora isso funcione, assumir a propriedade e em seguida retornar a propriedade com cada função é um pouco tedioso.
+E se quisermos permitir que uma função use um valor sem assumir a propriedade?
+
+É bastante irritante que qualquer coisa que passamos também precise ser retornada se quisermos usá-la novamente, além de qualquer dado resultante do corpo da função que também possamos querer retornar.
+
+**Rust does let us return multiple values using a tuple, as shown next.**
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+
+    let (s2, len) = calculate_length(s1);
+
+    println!("The length of '{}' is {}.", s2, len);
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len(); // len() returns the length of a String
+
+    (s, length)
+}
+```
