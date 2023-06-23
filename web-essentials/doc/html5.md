@@ -1,6 +1,6 @@
 O site usa o ChakraUI, o cockpit novo usa, hcondo, paghouse.
 
-# HTML6 (semântico)
+# HTML5 (semântico)
 
 ## TAGS ESTRUTURAIS (também conhecidas como **elements**)
 
@@ -22,13 +22,29 @@ O site usa o ChakraUI, o cockpit novo usa, hcondo, paghouse.
 
 1. Se você incluir `<nav>` dentro do `Header` vai ficar sub-entendido para o web scrap que é a navegação dentro do cabeçalho.
 2. Se você incluir `<nav>` dentro do `Footer`, vai ficar sub-entendido para o web scrap que é a navegação dentro do rodapé.
-<Article> A tag `<article>` especifica um conteúdo independente e autocontido. Um artigo deve ter sentido por si só e deve ser possível distribuí-lo independentemente do restante do site.
+
+- <Article> A tag `<article>` especifica um conteúdo independente e autocontido. Um artigo deve ter sentido por si só e deve ser possível distribuí-lo independentemente do restante do site.
 
 Fontes potenciais para o elemento <article>:
 
 - Postagens de fórum
 - Posts de blog
 - Notícias
+
+Ou seja, o `<article>` é direcionado à colocar o conteúdo relacionado à página. Ele tem uma característica de `aninhamento`, onde podemos colocar um dentro do outro.
+
+Exemplo:
+
+```
+<article>
+     <p>Qual seu prato favorito?</p>
+     <article>
+          <p>Churrasco</p>
+     </article>
+</article>
+```
+
+Isso faz com que os mecanismos de busca entenda que o article filho está relacionado ao pai, então o web scrapping vai entender a relação html.
 
 MACETE:
 
