@@ -1,0 +1,18 @@
+nav ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+}
+
+nav ul li a {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  padding: 10px 15px;
+  text-decoration: none;
+  color: blue;
+}
+
+nav ul li a:hover {
+  color: white;
+  background: blue;
+  text-decoration: none;
+}
